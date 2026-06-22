@@ -92,6 +92,48 @@ class RenderPatchTest(unittest.TestCase):
                 render_patch.render_patch(root, make_plan("Validate YAML files."))
         self.assertIn("no longer matches", str(context.exception))
 
+    def test_can_select_one_operation_from_mixed_plan(self) -> None:
+        plan = make_plan()
+        second = json.loads(json.dumps(plan["operations"][0]))
+        second["id"] = "op-002"
+        second["source"] = {"path": "SKILL.md", "start_line": 7, "end_line": 7}
+        second["instruction"] = "This paragraph cannot be rendered automatically."
+        plan["operations"].append(second)
+        plan["summary"]["total"] = 2
+        plan["summary"]["existing_command"] = 2
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            self.create_skill(root)
+            (root / "SKILL.md").write_text(
+                (root / "SKILL.md").read_text(encoding="utf-8")
+                + "This paragraph cannot be rendered automatically.\n",
+                encoding="utf-8",
+            )
+            patch = render_patch.render_patch(root, plan, {"op-001"})
+        self.assertIn("Lowered argv", patch)
+        self.assertEqual(patch.count("Lowered argv"), 1)
+
+    def test_rejects_unknown_selected_operation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            self.create_skill(root)
+            with self.assertRaises(render_patch.RenderError) as context:
+                render_patch.render_patch(root, make_plan(), {"op-999"})
+        self.assertIn("unknown operation ID", str(context.exception))
+
+    def test_rejects_selected_keep_agent_operation(self) -> None:
+        plan = make_plan()
+        plan["operations"][0]["classification"] = "keep-agent"
+        plan["operations"][0]["replacement"] = None
+        plan["summary"]["existing_command"] = 0
+        plan["summary"]["keep_agent"] = 1
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            self.create_skill(root)
+            with self.assertRaises(render_patch.RenderError) as context:
+                render_patch.render_patch(root, plan, {"op-001"})
+        self.assertIn("has no command replacement", str(context.exception))
+
     def test_does_not_modify_source(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
