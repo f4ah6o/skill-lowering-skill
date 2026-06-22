@@ -1,0 +1,13 @@
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -83,6 +83,10 @@
+ 3. 各項目が一つのカテゴリだけに属することを確認する。
+ 4. 破壊的変更や手作業が必要な変更には移行時の注意事項を追加する。
+ 5. リリース日は ISO 形式で記載する。
++   - Lowered argv: `["python3", "scripts/changelog_guard.py", "validate-dates", "${changelog_file}"]`
++   - Working directory: `"${repository_root}"`
++   - Accepted exit codes: `[0, 1, 2]`
++   - Fallback: Inspect every release heading and validate YYYY-MM-DD as a real calendar date.
+ 
+ ## レビュー用チェックリスト
+ 
