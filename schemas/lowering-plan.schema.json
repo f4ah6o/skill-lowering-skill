@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/skill-lowering/lowering-plan.schema.json",
+  "title": "Skill lowering plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "target_skill", "summary", "operations"],
+  "properties": {
+    "version": { "const": "1" },
+    "target_skill": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "name"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "existing_command", "bundled_script", "keep_agent", "human_gate", "unsupported"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "existing_command": { "type": "integer", "minimum": 0 },
+        "bundled_script": { "type": "integer", "minimum": 0 },
+        "keep_agent": { "type": "integer", "minimum": 0 },
+        "human_gate": { "type": "integer", "minimum": 0 },
+        "unsupported": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "operations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/operation" }
+    }
+  },
+  "$defs": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "start_line", "end_line"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "start_line": { "type": "integer", "minimum": 1 },
+        "end_line": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["inputs", "outputs", "side_effects", "failure_behavior"],
+      "properties": {
+        "inputs": { "type": "array", "items": { "type": "string" } },
+        "outputs": { "type": "array", "items": { "type": "string" } },
+        "side_effects": { "type": "array", "items": { "type": "string" } },
+        "failure_behavior": { "type": "string" }
+      }
+    },
+    "replacement": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["kind", "executable", "argv", "cwd", "expected_exit_codes", "fallback"],
+      "properties": {
+        "kind": { "enum": ["existing-command", "bundled-script"] },
+        "executable": { "type": "string", "minLength": 1 },
+        "argv": { "type": "array", "items": { "type": "string" } },
+        "cwd": { "type": "string" },
+        "expected_exit_codes": { "type": "array", "items": { "type": "integer" }, "minItems": 1 },
+        "fallback": { "type": "string" }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "status"],
+      "properties": {
+        "method": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["planned", "passed", "failed", "not-possible"] },
+        "evidence": { "type": "array", "items": { "type": "string" }, "default": [] }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "source", "instruction", "classification", "risk", "confidence", "contract", "rationale", "replacement", "verification"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^op-[0-9]{3,}$" },
+        "source": { "$ref": "#/$defs/source" },
+        "instruction": { "type": "string", "minLength": 1 },
+        "classification": { "enum": ["existing-command", "bundled-script", "keep-agent", "human-gate", "unsupported"] },
+        "risk": { "enum": ["low", "medium", "high"] },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "contract": { "$ref": "#/$defs/contract" },
+        "rationale": { "type": "string", "minLength": 1 },
+        "replacement": { "$ref": "#/$defs/replacement" },
+        "verification": { "$ref": "#/$defs/verification" }
+      }
+    }
+  }
+}

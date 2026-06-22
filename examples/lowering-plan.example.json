@@ -1,0 +1,99 @@
+{
+  "version": "1",
+  "target_skill": {
+    "path": "skills/example-review",
+    "name": "example-review"
+  },
+  "summary": {
+    "total": 3,
+    "existing_command": 1,
+    "bundled_script": 0,
+    "keep_agent": 1,
+    "human_gate": 1,
+    "unsupported": 0
+  },
+  "operations": [
+    {
+      "id": "op-001",
+      "source": {
+        "path": "SKILL.md",
+        "start_line": 20,
+        "end_line": 20
+      },
+      "instruction": "Validate every JSON file in the changed file set.",
+      "classification": "existing-command",
+      "risk": "low",
+      "confidence": 0.98,
+      "contract": {
+        "inputs": ["tracked changed files ending in .json"],
+        "outputs": ["one diagnostic per invalid file"],
+        "side_effects": [],
+        "failure_behavior": "Return non-zero when a selected file is invalid or unreadable."
+      },
+      "rationale": "JSON syntax validation is objective and jq is already declared by the repository development environment.",
+      "replacement": {
+        "kind": "existing-command",
+        "executable": "jq",
+        "argv": ["empty", "${file}"],
+        "cwd": "${repository_root}",
+        "expected_exit_codes": [0, 4],
+        "fallback": "Retain the validation step and report that jq is unavailable."
+      },
+      "verification": {
+        "method": "Run against valid and malformed JSON fixtures.",
+        "status": "planned",
+        "evidence": []
+      }
+    },
+    {
+      "id": "op-002",
+      "source": {
+        "path": "SKILL.md",
+        "start_line": 21,
+        "end_line": 21
+      },
+      "instruction": "Assess whether the changed design is maintainable.",
+      "classification": "keep-agent",
+      "risk": "low",
+      "confidence": 0.99,
+      "contract": {
+        "inputs": ["diff", "repository architecture", "project constraints"],
+        "outputs": ["reasoned maintainability findings"],
+        "side_effects": [],
+        "failure_behavior": "State missing context instead of substituting a narrow metric."
+      },
+      "rationale": "Maintainability assessment requires contextual and semantic judgment.",
+      "replacement": null,
+      "verification": {
+        "method": "Review that the lowered skill still requests semantic design analysis.",
+        "status": "planned",
+        "evidence": []
+      }
+    },
+    {
+      "id": "op-003",
+      "source": {
+        "path": "SKILL.md",
+        "start_line": 22,
+        "end_line": 22
+      },
+      "instruction": "Publish the review to the pull request.",
+      "classification": "human-gate",
+      "risk": "high",
+      "confidence": 0.99,
+      "contract": {
+        "inputs": ["approved review body", "pull request identifier"],
+        "outputs": ["published pull request review"],
+        "side_effects": ["writes to GitHub"],
+        "failure_behavior": "Do not publish without explicit authorization."
+      },
+      "rationale": "Publication is an external side effect and remains approval-gated.",
+      "replacement": null,
+      "verification": {
+        "method": "Confirm dry-run output and approval boundary.",
+        "status": "planned",
+        "evidence": []
+      }
+    }
+  ]
+}
