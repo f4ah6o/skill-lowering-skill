@@ -1,0 +1,302 @@
+{
+  "version": "1",
+  "target_skill": {
+    "path": "skills/changelog",
+    "name": "changelog"
+  },
+  "summary": {
+    "total": 10,
+    "existing_command": 0,
+    "bundled_script": 5,
+    "keep_agent": 5,
+    "human_gate": 0,
+    "unsupported": 0
+  },
+  "operations": [
+    {
+      "id": "op-001",
+      "source": {
+        "path": "SKILL.md",
+        "start_line": 17,
+        "end_line": 18
+      },
+      "instruction": "Select CHANGES.md unless the repository already uses CHANGELOG.md, and do not create both.",
+      "classification": "bundled-script",
+      "risk": "low",
+      "confidence": 0.97,
+      "contract": {
+        "inputs": ["repository root"],
+        "outputs": ["selected changelog path"],
+        "side_effects": [],
+        "failure_behavior": "Return non-zero when both files exist or the repository root is unreadable."
+      },
+      "rationale": "File existence and the mutually exclusive file-name rule are mechanically testable.",
+      "replacement": {
+        "kind": "bundled-script",
+        "executable": "python3",
+        "argv": ["scripts/changelog_guard.py", "select-file", "${repository_root}"],
+        "cwd": "${repository_root}",
+        "expected_exit_codes": [0, 1, 2],
+        "fallback": "Inspect CHANGES.md and CHANGELOG.md existence directly and report ambiguity without creating either file."
+      },
+      "verification": {
+        "method": "Test repositories containing neither file, only CHANGES.md, only CHANGELOG.md, and both files.",
+        "status": "planned",
+        "evidence": []
+      }
+    },
+    {
+      "id": "op-002",
+      "source": {
+        "path": "SKILL.md",
+        "start_line": 44,
+        "end_line": 44
+      },
+      "instruction": "リポジトリに異なる慣例がなければ、`Unreleased` 配下の空のセクションを残す。",
+      "classification": "bundled-script",
+      "risk": "low",
+      "confidence": 0.9,
+      "contract": {
+        "inputs": ["selected changelog file", "optional repository convention override"],
+        "outputs": ["missing or misordered Unreleased category diagnostics"],
+        "side_effects": [],
+        "failure_behavior": "Return non-zero when required categories are absent or out of order."
+      },
+      "rationale": "The default heading set and order are structural checks; repository-specific conventions remain an explicit override.",
+      "replacement": {
+        "kind": "bundled-script",
+        "executable": "python3",
+        "argv": ["scripts/changelog_guard.py", "validate-structure", "${changelog_file}"],
+        "cwd": "${repository_root}",
+        "expected_exit_codes": [0, 1, 2],
+        "fallback": "Read the Unreleased section and compare its headings with the documented default structure."
+      },
+      "verification": {
+        "method": "Use fixtures for complete, missing, duplicated, reordered, and convention-overridden sections.",
+        "status": "planned",
+        "evidence": []
+      }
+    },
+    {
+      "id": "op-003",
+      "source": {
+        "path": "SKILL.md",
+        "start_line": 48,
+        "end_line": 49
+      },
+      "instruction": "Write each entry as a short, concrete user-facing statement and add a relevant local issue, PR, or commit link when available.",
+      "classification": "keep-agent",
+      "risk": "low",
+      "confidence": 0.99,
+      "contract": {
+        "inputs": ["candidate changelog entry", "change context", "available local references"],
+        "outputs": ["revised user-facing entry"],
+        "side_effects": [],
+        "failure_behavior": "State when change context is insufficient rather than fabricating impact or links."
+      },
+      "rationale": "Concreteness, brevity, audience suitability, and link relevance require semantic judgment.",
+      "replacement": null,
+      "verification": {
+        "method": "Review representative entries against the stated audience and source change.",
+        "status": "planned",
+        "evidence": []
+      }
+    },
+    {
+      "id": "op-004",
+      "source": {
+        "path": "SKILL.md",
+        "start_line": 61,
+        "end_line": 67
+      },
+      "instruction": "Assign each entry to Added, Changed, Fixed, Deprecated, Removed, Security, or Migration according to its meaning.",
+      "classification": "keep-agent",
+      "risk": "low",
+      "confidence": 0.98,
+      "contract": {
+        "inputs": ["entry text", "underlying change", "category definitions"],
+        "outputs": ["selected category with rationale"],
+        "side_effects": [],
+        "failure_behavior": "Report ambiguity when the underlying change does not establish one category."
+      },
+      "rationale": "A script can validate allowed headings, but selecting the correct category depends on the semantic effect of the change.",
+      "replacement": null,
+      "verification": {
+        "method": "Evaluate ambiguous and cross-cutting changes and confirm that rationale cites user impact.",
+        "status": "planned",
+        "evidence": []
+      }
+    },
+    {
+      "id": "op-005",
+      "source": {
+        "path": "SKILL.md",
+        "start_line": 71,
+        "end_line": 75
+      },
+      "instruction": "Decide whether a change needs a changelog entry based on public behavior and user, operational, compatibility, security, installation, or migration impact.",
+      "classification": "keep-agent",
+      "risk": "low",
+      "confidence": 0.99,
+      "contract": {
+        "inputs": ["diff", "public interfaces", "repository conventions"],
+        "outputs": ["entry-required decision with rationale"],
+        "side_effects": [],
+        "failure_behavior": "State missing impact context instead of treating file patterns as definitive."
+      },
+      "rationale": "Determining whether an internal change has user-visible impact is contextual and cannot be reduced safely to changed-file rules.",
+      "replacement": null,
+      "verification": {
+        "method": "Review examples where tests, CI, refactors, and configuration changes have different external effects.",
+        "status": "planned",
+        "evidence": []
+      }
+    },
+    {
+      "id": "op-006",
+      "source": {
+        "path": "SKILL.md",
+        "start_line": 81,
+        "end_line": 82
+      },
+      "instruction": "Rename the current Unreleased heading to a versioned ISO-dated release heading and insert a new empty Unreleased section above it.",
+      "classification": "bundled-script",
+      "risk": "medium",
+      "confidence": 0.98,
+      "contract": {
+        "inputs": ["changelog file", "version", "release date"],
+        "outputs": ["updated changelog text"],
+        "side_effects": ["writes the changelog file when apply mode is explicitly selected"],
+        "failure_behavior": "Refuse to write when Unreleased is missing or duplicated, the date is invalid, or the requested release heading already exists."
+      },
+      "rationale": "The heading transformation is deterministic once version and date are provided, but write mode must remain explicit.",
+      "replacement": {
+        "kind": "bundled-script",
+        "executable": "python3",
+        "argv": ["scripts/changelog_guard.py", "release", "${changelog_file}", "--version", "${version}", "--date", "${release_date}", "--check"],
+        "cwd": "${repository_root}",
+        "expected_exit_codes": [0, 1, 2],
+        "fallback": "Prepare a textual diff only; do not modify the changelog when preconditions cannot be proved."
+      },
+      "verification": {
+        "method": "Compare exact output for valid input and test missing, duplicate, existing-release, and invalid-date failures.",
+        "status": "planned",
+        "evidence": []
+      }
+    },
+    {
+      "id": "op-007",
+      "source": {
+        "path": "SKILL.md",
+        "start_line": 83,
+        "end_line": 83
+      },
+      "instruction": "各項目が一つのカテゴリだけに属することを確認する。",
+      "classification": "bundled-script",
+      "risk": "low",
+      "confidence": 0.88,
+      "contract": {
+        "inputs": ["changelog file"],
+        "outputs": ["duplicate-entry diagnostics across category sections"],
+        "side_effects": [],
+        "failure_behavior": "Return non-zero for exact duplicate entries found under multiple categories."
+      },
+      "rationale": "Exact duplicate placement is mechanically detectable, while semantic overlap between differently worded entries remains an agent review task.",
+      "replacement": {
+        "kind": "bundled-script",
+        "executable": "python3",
+        "argv": ["scripts/changelog_guard.py", "validate-duplicates", "${changelog_file}"],
+        "cwd": "${repository_root}",
+        "expected_exit_codes": [0, 1, 2],
+        "fallback": "Compare normalized entry text across categories and report only exact duplicates."
+      },
+      "verification": {
+        "method": "Test unique entries, exact duplicates, whitespace variants, and semantically similar but non-identical entries.",
+        "status": "planned",
+        "evidence": []
+      }
+    },
+    {
+      "id": "op-008",
+      "source": {
+        "path": "SKILL.md",
+        "start_line": 84,
+        "end_line": 84
+      },
+      "instruction": "破壊的変更や手作業が必要な変更には移行時の注意事項を追加する。",
+      "classification": "keep-agent",
+      "risk": "low",
+      "confidence": 0.99,
+      "contract": {
+        "inputs": ["breaking or manual change details", "affected users", "required sequence"],
+        "outputs": ["accurate migration note"],
+        "side_effects": [],
+        "failure_behavior": "Request missing migration steps instead of inventing them."
+      },
+      "rationale": "Identifying required human steps and explaining them correctly depends on change semantics and operational context.",
+      "replacement": null,
+      "verification": {
+        "method": "Check the note against the actual migration procedure and affected versions.",
+        "status": "planned",
+        "evidence": []
+      }
+    },
+    {
+      "id": "op-009",
+      "source": {
+        "path": "SKILL.md",
+        "start_line": 85,
+        "end_line": 85
+      },
+      "instruction": "リリース日は ISO 形式で記載する。",
+      "classification": "bundled-script",
+      "risk": "low",
+      "confidence": 0.99,
+      "contract": {
+        "inputs": ["changelog file"],
+        "outputs": ["invalid release-date diagnostics"],
+        "side_effects": [],
+        "failure_behavior": "Return non-zero for malformed or impossible calendar dates."
+      },
+      "rationale": "Release-heading date syntax and calendar validity are objective checks.",
+      "replacement": {
+        "kind": "bundled-script",
+        "executable": "python3",
+        "argv": ["scripts/changelog_guard.py", "validate-dates", "${changelog_file}"],
+        "cwd": "${repository_root}",
+        "expected_exit_codes": [0, 1, 2],
+        "fallback": "Inspect every release heading and validate YYYY-MM-DD as a real calendar date."
+      },
+      "verification": {
+        "method": "Test valid dates, malformed dates, and impossible dates such as 2026-02-30.",
+        "status": "planned",
+        "evidence": []
+      }
+    },
+    {
+      "id": "op-010",
+      "source": {
+        "path": "SKILL.md",
+        "start_line": 91,
+        "end_line": 94
+      },
+      "instruction": "Review clarity, category accuracy, confidentiality, and implementation-noise concerns before finalizing entries.",
+      "classification": "keep-agent",
+      "risk": "low",
+      "confidence": 0.98,
+      "contract": {
+        "inputs": ["draft changelog entries", "source changes", "audience and confidentiality context"],
+        "outputs": ["review findings and revised entries"],
+        "side_effects": [],
+        "failure_behavior": "Flag uncertainty and possible sensitive content for human review."
+      },
+      "rationale": "The checklist is primarily semantic; scanners may supply evidence but cannot establish clarity, relevance, or confidentiality safely.",
+      "replacement": null,
+      "verification": {
+        "method": "Review entries containing implementation detail, hidden migration impact, unclear audience value, and potentially sensitive context.",
+        "status": "planned",
+        "evidence": []
+      }
+    }
+  ]
+}
