@@ -17,4 +17,5 @@ jobs:
           python-version: "3.12"
       - run: python -m unittest discover -s tests -v
       - run: python -m json.tool schemas/lowering-plan.schema.json > /dev/null
+      - run: python scripts/validate_plan.py examples/lowering-plan.example.json --format json
       - run: python scripts/inventory.py . --format json > /dev/null
