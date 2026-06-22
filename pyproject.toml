@@ -1,6 +1,6 @@
 [project]
 name = "skill-lowering"
-version = "0.1.0"
+version = "0.2.0"
 description = "Agent Skill for lowering deterministic instructions into commands and scripts"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
