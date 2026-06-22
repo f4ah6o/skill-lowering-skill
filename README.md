@@ -49,12 +49,15 @@ Generate a review-only patch for mechanically lowered single-line list instructi
 python3 scripts/render_patch.py \
   ./skills/code-review \
   lowering-plan.json \
+  --operation op-009 \
   --output lowering.patch
 
 git apply --check lowering.patch
 ```
 
-`render_patch.py` never modifies the target Skill. It rejects stale source text, overlapping source ranges, unsafe paths, multi-line replacements, and non-list instructions. Complex rewrites remain the meta-skill's responsibility.
+`render_patch.py` never modifies the target Skill. Repeat `--operation ID` to render only eligible operations from a mixed plan. It rejects unknown IDs, stale source text, overlapping source ranges, unsafe paths, multi-line replacements, and non-list instructions. Complex rewrites remain the meta-skill's responsibility.
+
+A recorded end-to-end analysis is available under `dogfood/changelog/`.
 
 ## Development
 
