@@ -19,3 +19,11 @@ jobs:
       - run: python -m json.tool schemas/lowering-plan.schema.json > /dev/null
       - run: python scripts/validate_plan.py examples/lowering-plan.example.json --format json
       - run: python scripts/inventory.py . --format json > /dev/null
+      - run: python scripts/validate_plan.py dogfood/changelog/lowering-plan.json
+      - run: |
+          python scripts/render_patch.py \
+            dogfood/changelog/target \
+            dogfood/changelog/lowering-plan.json \
+            --operation op-009 \
+            --output /tmp/changelog.patch
+          diff -u dogfood/changelog/expected.patch /tmp/changelog.patch
