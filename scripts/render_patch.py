@@ -25,6 +25,13 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("skill_directory", type=Path)
     parser.add_argument("plan", type=Path)
     parser.add_argument("--output", type=Path)
+    parser.add_argument(
+        "--operation",
+        action="append",
+        dest="operation_ids",
+        metavar="ID",
+        help="render only the selected operation ID; may be repeated",
+    )
     return parser.parse_args(argv)
 
 
@@ -76,15 +83,32 @@ def safe_source_path(root: Path, relative_path: str) -> Path:
     return candidate
 
 
-def render_patch(skill_directory: Path, plan: dict[str, Any]) -> str:
+def render_patch(
+    skill_directory: Path,
+    plan: dict[str, Any],
+    operation_ids: set[str] | None = None,
+) -> str:
     validate_plan(plan)
     root = skill_directory.resolve()
     if not root.is_dir():
         raise RenderError(f"not a directory: {skill_directory}")
 
+    operations_by_id = {operation["id"]: operation for operation in plan["operations"]}
+    if operation_ids is not None:
+        unknown_ids = sorted(operation_ids - set(operations_by_id))
+        if unknown_ids:
+            raise RenderError(f"unknown operation ID(s): {', '.join(unknown_ids)}")
+
     grouped: dict[str, list[dict[str, Any]]] = {}
     for operation in plan["operations"]:
+        if operation_ids is not None and operation["id"] not in operation_ids:
+            continue
         if operation["classification"] not in {"existing-command", "bundled-script"}:
+            if operation_ids is not None:
+                raise RenderError(
+                    f"{operation['id']}: classification {operation['classification']!r} "
+                    "has no command replacement to render"
+                )
             continue
         grouped.setdefault(operation["source"]["path"], []).append(operation)
 
@@ -136,7 +160,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(sys.argv[1:] if argv is None else argv)
     try:
         plan = load_plan(args.plan)
-        patch = render_patch(args.skill_directory, plan)
+        selected = set(args.operation_ids) if args.operation_ids else None
+        patch = render_patch(args.skill_directory, plan, selected)
     except (PlanValidationError, RenderError) as exc:
         diagnostics = exc.diagnostics if isinstance(exc, PlanValidationError) else [str(exc)]
         for diagnostic in diagnostics:
