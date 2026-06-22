@@ -116,13 +116,13 @@ Default to proposal-only mode. Apply changes only when the user requested implem
 
 For an eligible single-line Markdown list instruction, generate a review-only patch:
 
-    python3 scripts/render_patch.py <target-skill-directory> <lowering-plan.json> --output lowering.patch
+    python3 scripts/render_patch.py <target-skill-directory> <lowering-plan.json> --operation <operation-id> --output lowering.patch
 
 Then inspect it and run:
 
     git apply --check lowering.patch
 
-The renderer never modifies source files. It rejects stale source text, multi-line source ranges, non-list instructions, path traversal, invalid plans, and overlapping operations. Perform complex semantic rewrites directly and explain why they could not use the deterministic renderer.
+The renderer never modifies source files. Repeat `--operation` to select multiple eligible operations from a mixed plan. It rejects unknown or non-lowerable IDs, stale source text, multi-line source ranges, non-list instructions, path traversal, invalid plans, and overlapping operations. Perform complex semantic rewrites directly and explain why they could not use the deterministic renderer.
 
 When applying an approved lowering:
 
